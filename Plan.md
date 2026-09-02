@@ -100,7 +100,7 @@
 
 ### 3.4. 익스텐션 팝업 대시보드 (Popup UI)
 
-* **목표 현황:** 프로그레스 바 (현재 모은 돈 / 유저 설정 목표 금액 `targetAmount`, 기본값 100,000,000원).
+* **목표 현황:** 프로그레스 바 (총 방어 성공 금액 `totalProtectedAmount` / 유저 설정 목표 금액 `targetAmount`, 기본값 100,000,000원). [구매 포기]를 누를 때마다 `totalProtectedAmount`가 누적되어 게이지가 차오름.
 * **목표 금액 커스텀 설정:**
 * 목표 금액(`targetAmount`) 직접 입력 필드 제공.
 * 빠른 입력용 프리셋 버튼: [3천만], [5천만], [1억], [2억].
@@ -110,11 +110,20 @@
 * 방어 횟수 vs 결제 강행 횟수.
 
 
-* **유저 기본 설정 폼:** 유저 시급(기본값 15,000원), 월 저축 목표액, 1억 달성 목표 연도.
+* **유저 기본 설정 폼:** 유저 시급(기본값 15,000원)만 입력받음. (월 저축 목표액/현재 보유 자산 입력 필드는 v1.1에서 폐지 — 목표 게이지는 방어 성공 금액 누적으로만 채워짐.)
 * **시급 입력 방식 토글 (라디오 버튼):**
 * [시급 직접 입력] / [월급으로 계산] 두 옵션 중 선택.
 * [월급으로 계산] 선택 시 실수령액(월급) 입력 필드 노출, 다음 공식으로 시급 자동 산출 및 저장: `hourlyWage = Math.round(monthlySalary / 209)` (주 40시간 기준 월 209시간 환산).
 * 산출 근거 오해를 방지하기 위해 월급 입력/환산 시급 표시 영역 하단에 안내 캡션 문구 노출: "※ 주 40시간 근무 기준 (법정 유급휴일·주휴수당 포함, 월 209시간 적용)"
+
+* **방어 내역 리포트 (기간별 집계):**
+* `protectedLogs`의 `timestamp` 기준 [일별 / 월별 / 연별] 필터 탭 제공.
+* 선택된 기간 단위로 그룹화하여 각 그룹의 "총 방어 금액"과 "누적 환산 노동 시간"(그룹 내 각 로그의 `workHoursSaved` 합산) 표시.
+* **CSV(엑셀) 내보내기:**
+* 외부 API/라이브러리 없이 브라우저 내장 `Blob` + `URL.createObjectURL`로 다운로드 구현.
+* 엑셀 한글 깨짐 방지를 위해 UTF-8 BOM(`﻿`) 필수 포함.
+* 파일명 포맷: `PayBreak_Savings_YYYYMMDD.csv`.
+* 컬럼: 날짜, 사이트, 결제금액, 노동시간, 당시시급(`hourlyWageAtLog` — 로그 기록 시점의 `hourlyWage` 스냅샷, 이후 시급이 바뀌어도 과거 기록은 왜곡되지 않도록 보존).
 
 ---
 
@@ -126,8 +135,6 @@
 {
   "userConfig": {
     "targetAmount": 100000000,
-    "currentSavings": 25000000,
-    "monthlyTarget": 1500000,
     "hourlyWage": 15000,
     "cooldownSeconds": 30,
     "salaryType": "hourly",
@@ -144,7 +151,8 @@
       "timestamp": "2026-09-02T10:30:00Z",
       "siteDomain": "coupang.com",
       "amount": 89000,
-      "workHoursSaved": 5.9
+      "workHoursSaved": 5.9,
+      "hourlyWageAtLog": 15000
     }
   ]
 }
@@ -162,3 +170,5 @@
 * [ ] **Tab Closer:** [구매 포기] 트리거 시 `history.length > 1`이면 `history.back()`으로 이전 페이지 복귀, `history.length <= 1`일 때만 content script → background service worker 런타임 메시지 → `chrome.tabs.remove()`로 Fallback 처리 (`window.close()` 사용 금지)
 * [ ] **Wage Input Toggle:** Popup에 시급 직접 입력 / 월급 입력 라디오 토글 구현, 월급 선택 시 `hourlyWage = Math.round(monthlySalary / 209)` 자동 산출 및 `salaryType`, `monthlySalary`, `hourlyWage` 모두 `chrome.storage.local`에 저장
 * [ ] **Custom Target Amount:** Popup에 목표 금액 입력 필드 + 프리셋 버튼(3천만/5천만/1억/2억) 구현, 클릭/입력 즉시 `userConfig.targetAmount`에 동기화; 결제창 모달의 지연일 경고 문구·타이핑 검증 문장·세이브 버튼 텍스트를 `targetAmount` 기준으로 동적 생성(한국식 단위 포맷팅)
+* [ ] **Gauge Model Migration (v1.1):** `userConfig`에서 `monthlyTarget`/`currentSavings` 제거, `calcDelayDays` → `calcGaugeGainPercent`로 대체, 모달 상단 문구를 게이지 증가율(%) 기반으로 전환, Popup 프로그레스 바를 `totalProtectedAmount / targetAmount` 기준으로 전환
+* [ ] **Protection Log Report & CSV Export:** Popup에 `protectedLogs` 일별/월별/연별 집계 탭(기간별 총 방어 금액·누적 노동 시간 합산) 추가, Blob + `URL.createObjectURL` 기반 CSV 다운로드 구현 (UTF-8 BOM 포함, 파일명 `PayBreak_Savings_YYYYMMDD.csv`, 컬럼: 날짜/사이트/결제금액/노동시간/당시시급). `ProtectedLog`에 `hourlyWageAtLog` 필드 추가하여 로그 시점의 시급을 보존

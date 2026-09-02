@@ -1,13 +1,40 @@
 import { storage } from '../shared/storage'
 import type { SalaryType, UserConfig } from '../shared/types'
 import { calcHourlyFromMonthlySalary } from '../shared/calculations'
+import { aggregateByPeriod, downloadProtectedLogsCsv, type ReportPeriod } from './report'
 
 function formatWon(amount: number): string {
   return `${amount.toLocaleString('ko-KR')}원`
 }
 
+const PERIOD_LABELS: Record<ReportPeriod, string> = {
+  daily: '일별',
+  monthly: '월별',
+  yearly: '연별',
+}
+
+let selectedPeriod: ReportPeriod = 'monthly'
+
+function renderReportRows(protectedLogs: Awaited<ReturnType<typeof storage.getAll>>['protectedLogs'], period: ReportPeriod): string {
+  const aggregates = aggregateByPeriod(protectedLogs, period)
+  if (aggregates.length === 0) {
+    return '<p class="report-empty">아직 방어 내역이 없어요.</p>'
+  }
+  return aggregates
+    .map(
+      (a) => `
+        <div class="report-row">
+          <span class="report-key">${a.key}</span>
+          <span class="report-amount">${formatWon(a.totalAmount)}</span>
+          <span class="report-hours">${Math.round(a.totalWorkHours * 10) / 10}시간</span>
+        </div>
+      `
+    )
+    .join('')
+}
+
 async function render() {
-  const { userConfig, stats } = await storage.getAll()
+  const { userConfig, stats, protectedLogs } = await storage.getAll()
   const app = document.getElementById('app')!
 
   const progressPct = Math.min(100, Math.round((stats.totalProtectedAmount / userConfig.targetAmount) * 100))
@@ -36,6 +63,22 @@ async function render() {
         <div class="value">${stats.protectedCount + stats.overrideCount === 0 ? '-' : `${Math.round((stats.protectedCount / (stats.protectedCount + stats.overrideCount)) * 100)}%`}</div>
         <div class="label">이탈률</div>
       </div>
+    </div>
+
+    <div class="report-section">
+      <h2>방어 내역 리포트</h2>
+      <div class="period-tabs">
+        ${(['daily', 'monthly', 'yearly'] as ReportPeriod[])
+          .map(
+            (period) =>
+              `<button type="button" class="period-tab ${selectedPeriod === period ? 'active' : ''}" data-period="${period}">${PERIOD_LABELS[period]}</button>`
+          )
+          .join('')}
+      </div>
+      <div class="report-list" id="pb-report-list">
+        ${renderReportRows(protectedLogs, selectedPeriod)}
+      </div>
+      <button class="csv-export-btn" id="pb-csv-export">CSV로 내보내기</button>
     </div>
 
     <div class="settings">
@@ -77,6 +120,17 @@ async function render() {
       <button class="save-settings-btn" id="pb-save">설정 저장</button>
     </div>
   `
+
+  const periodTabs = app.querySelectorAll<HTMLButtonElement>('.period-tab')
+  periodTabs.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectedPeriod = btn.dataset.period as ReportPeriod
+      render()
+    })
+  })
+
+  const csvExportBtn = app.querySelector<HTMLButtonElement>('#pb-csv-export')!
+  csvExportBtn.addEventListener('click', () => downloadProtectedLogsCsv(protectedLogs))
 
   const targetInput = app.querySelector<HTMLInputElement>('#pb-target')!
   const presetBtns = app.querySelectorAll<HTMLButtonElement>('.preset-btn')

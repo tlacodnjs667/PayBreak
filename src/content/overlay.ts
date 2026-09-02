@@ -258,6 +258,7 @@ export function mountOverlay(initialAmount: number | null, config: UserConfig, s
       amount,
       siteDomain,
       workHoursSaved: figures.workHours,
+      hourlyWageAtLog: config.hourlyWage,
     })
     destroy()
     if (history.length > 1) {

@@ -3,6 +3,7 @@ export interface RecordProtectedMessage {
   amount: number
   siteDomain: string
   workHoursSaved: number
+  hourlyWageAtLog: number
 }
 
 /** Fallback only: sent when the tab has no history to go back to (e.g. opened as a new tab). */

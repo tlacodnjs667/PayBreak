@@ -20,6 +20,7 @@ export interface ProtectedLog {
   siteDomain: string
   amount: number
   workHoursSaved: number
+  hourlyWageAtLog: number
 }
 
 export interface PayBreakStorage {

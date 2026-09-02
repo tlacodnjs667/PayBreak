@@ -13,6 +13,7 @@ async function handleMessage(message: PayBreakMessage, sender: chrome.runtime.Me
         siteDomain: message.siteDomain,
         amount: message.amount,
         workHoursSaved: message.workHoursSaved,
+        hourlyWageAtLog: message.hourlyWageAtLog,
       })
       break
     }
