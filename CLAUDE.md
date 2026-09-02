@@ -13,5 +13,5 @@
 
 ## 3. Core Business Logic Rules
 - 30-Second Lockdown: The "Proceed" button MUST stay disabled until the 30s timer hits 0.
-- Strict Verification: After 30s, the proceed button only unlocks when the user types exact text: "나는 1억 모으기 목표보다 이 물건이 지금 당장 더 가치 있다고 확신합니다."
+- Strict Verification: After 30s, the proceed button only unlocks when the user types exact text. The sentence is dynamically generated from `userConfig.targetAmount` (Korean-unit formatted, e.g. "1억 원", "5,000만 원"): `나는 ${formattedTarget} 모으기 목표보다 이 물건이 지금 당장 더 가치 있다고 확신합니다.` — comparison must match the currently configured target amount, not a fixed literal.
 - Protection Counter: Accumulate protected purchase amount to `totalProtectedAmount` in `chrome.storage.local` upon purchase abandonment.

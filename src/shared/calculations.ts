@@ -16,11 +16,10 @@ export function calcWorkHours(amount: number, hourlyWage: number): number {
   return Math.round((amount / hourlyWage) * 10) / 10
 }
 
-/** 결제 금액 -> 1억 목표 지연 일수 */
-export function calcDelayDays(amount: number, monthlyTarget: number): number {
-  const dailyTarget = monthlyTarget / 30
-  if (dailyTarget <= 0) return 0
-  return Math.round(amount / dailyTarget)
+/** 결제 금액 -> 목표 게이지 증가율(%) (소수점 첫째 자리 반올림) */
+export function calcGaugeGainPercent(amount: number, targetAmount: number): number {
+  if (targetAmount <= 0) return 0
+  return Math.round((amount / targetAmount) * 1000) / 10
 }
 
 /** 5년 복리 기회비용 (연 8% 가정) */
@@ -28,16 +27,34 @@ export function calcCompoundFutureValue(amount: number): number {
   return Math.round(amount * (1 + COMPOUND_ANNUAL_RATE) ** COMPOUND_YEARS)
 }
 
+/** 원 단위 금액을 "1억 5,000만 원" 같은 한국식 단위 표기로 변환 */
+export function formatKoreanAmount(amount: number): string {
+  if (amount <= 0) return '0원'
+
+  const eok = Math.floor(amount / 100_000_000)
+  const remainderAfterEok = amount % 100_000_000
+  const man = Math.floor(remainderAfterEok / 10_000)
+  const won = remainderAfterEok % 10_000
+
+  const parts: string[] = []
+  if (eok > 0) parts.push(`${eok}억`)
+  if (man > 0) parts.push(`${man.toLocaleString('ko-KR')}만`)
+  if (parts.length === 0 && won > 0) parts.push(won.toLocaleString('ko-KR'))
+  if (parts.length === 0) parts.push('0')
+
+  return `${parts.join(' ')} 원`
+}
+
 export interface FrictionFigures {
   workHours: number
-  delayDays: number
+  gaugeGainPercent: number
   futureValue: number
 }
 
 export function calcFrictionFigures(amount: number, config: UserConfig): FrictionFigures {
   return {
     workHours: calcWorkHours(amount, config.hourlyWage),
-    delayDays: calcDelayDays(amount, config.monthlyTarget),
+    gaugeGainPercent: calcGaugeGainPercent(amount, config.targetAmount),
     futureValue: calcCompoundFutureValue(amount),
   }
 }

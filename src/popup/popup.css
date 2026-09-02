@@ -93,6 +93,38 @@ body {
   font-weight: 600;
 }
 
+.settings h2.section-gap {
+  margin-top: 18px;
+}
+
+.preset-group {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.preset-btn {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: 6px;
+  border: 1px solid #3a3d47;
+  background: #0e0f14;
+  color: #d4d4d8;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.preset-btn:hover {
+  border-color: #22c55e;
+}
+
+.preset-btn.active {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #05170b;
+  font-weight: 700;
+}
+
 .field {
   margin-bottom: 10px;
 }
@@ -145,6 +177,7 @@ body {
   color: #9aa0ab;
   margin: 4px 0 0;
   line-height: 1.4;
+  text-align: right;
 }
 
 .save-settings-btn {

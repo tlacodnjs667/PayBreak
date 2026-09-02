@@ -1,8 +1,6 @@
 import type { UserConfig } from '../shared/types'
-import { calcFrictionFigures } from '../shared/calculations'
+import { calcFrictionFigures, formatKoreanAmount } from '../shared/calculations'
 import type { PayBreakMessage, AckResponse } from '../shared/messages'
-
-const CONFESSION_SENTENCE = '나는 1억 모으기 목표보다 이 물건이 지금 당장 더 가치 있다고 확신합니다.'
 
 const STYLES = `
 :host {
@@ -33,9 +31,10 @@ const STYLES = `
   font-weight: 700;
   margin: 0 0 4px;
 }
-.pb-subtitle {
+.pb-delay-warning {
   font-size: 13px;
-  color: #9aa0ab;
+  color: #ff5c5c;
+  font-weight: 600;
   margin: 0 0 20px;
 }
 .pb-amount-input-row {
@@ -151,6 +150,9 @@ function formatWon(amount: number): string {
 }
 
 export function mountOverlay(initialAmount: number | null, config: UserConfig, siteDomain: string): OverlayHandle {
+  const formattedTarget = formatKoreanAmount(config.targetAmount)
+  const CONFESSION_SENTENCE = `나는 ${formattedTarget} 모으기 목표보다 이 물건이 지금 당장 더 가치 있다고 확신합니다.`
+
   const previousOverflow = document.documentElement.style.overflow
   document.documentElement.style.overflow = 'hidden'
 
@@ -171,8 +173,8 @@ export function mountOverlay(initialAmount: number | null, config: UserConfig, s
   overlay.appendChild(card)
 
   card.innerHTML = `
-    <p class="pb-title">잠깐, 1억 목표를 다시 생각해보세요</p>
-    <p class="pb-subtitle">이 결제가 정말 지금 필요한가요?</p>
+    <p class="pb-title">잠깐, ${formattedTarget} 목표를 다시 생각해보세요</p>
+    <p class="pb-delay-warning" id="pb-delay-warning"></p>
     ${initialAmount === null ? `
       <div class="pb-amount-input-row">
         <input type="number" placeholder="결제 예정 금액을 직접 입력하세요" id="pb-manual-amount" />
@@ -180,7 +182,7 @@ export function mountOverlay(initialAmount: number | null, config: UserConfig, s
     ` : ''}
     <div class="pb-figures" id="pb-figures"></div>
     <div class="pb-timer" id="pb-timer"></div>
-    <button class="pb-save-btn" id="pb-save-btn">결제 포기하고 1억 지키기</button>
+    <button class="pb-save-btn" id="pb-save-btn">결제 포기하고 ${formattedTarget} 지키기</button>
     <div class="pb-override-section">
       <p class="pb-override-hint">그래도 결제를 진행하려면 아래 문장을 정확히 똑같이 입력하세요.</p>
       <p class="pb-confession-sentence">${CONFESSION_SENTENCE}</p>
@@ -192,6 +194,7 @@ export function mountOverlay(initialAmount: number | null, config: UserConfig, s
   document.documentElement.appendChild(host)
 
   const figuresEl = card.querySelector<HTMLDivElement>('#pb-figures')!
+  const delayWarningEl = card.querySelector<HTMLParagraphElement>('#pb-delay-warning')!
   const timerEl = card.querySelector<HTMLDivElement>('#pb-timer')!
   const saveBtn = card.querySelector<HTMLButtonElement>('#pb-save-btn')!
   const proceedBtn = card.querySelector<HTMLButtonElement>('#pb-proceed-btn')!
@@ -202,10 +205,11 @@ export function mountOverlay(initialAmount: number | null, config: UserConfig, s
 
   function renderFigures() {
     const figures = calcFrictionFigures(amount, config)
+    delayWarningEl.textContent = `이번 결제(${formatWon(amount)})를 참으면 목표 달성 게이지가 +${figures.gaugeGainPercent}% 채워집니다!`
     figuresEl.innerHTML = `
       <div class="pb-figure-row"><span class="label">결제 금액</span><span class="value">${formatWon(amount)}</span></div>
       <div class="pb-figure-row"><span class="label">내 시급 기준 노동 시간</span><span class="value">${figures.workHours}시간</span></div>
-      <div class="pb-figure-row"><span class="label">1억 달성 지연 일수</span><span class="value">${figures.delayDays}일</span></div>
+      <div class="pb-figure-row"><span class="label">게이지 증가량</span><span class="value">+${figures.gaugeGainPercent}%</span></div>
       <div class="pb-figure-row"><span class="label">5년 후 기회비용 (연 8%)</span><span class="value">${formatWon(figures.futureValue)}</span></div>
     `
   }

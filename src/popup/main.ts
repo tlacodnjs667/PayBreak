@@ -10,14 +10,14 @@ async function render() {
   const { userConfig, stats } = await storage.getAll()
   const app = document.getElementById('app')!
 
-  const progressPct = Math.min(100, Math.round((userConfig.currentSavings / userConfig.targetAmount) * 100))
+  const progressPct = Math.min(100, Math.round((stats.totalProtectedAmount / userConfig.targetAmount) * 100))
 
   app.innerHTML = `
     <p class="title">PayBreak</p>
     <p class="tagline">결제 직전 30초의 브레이크, 1억 달성을 지킵니다.</p>
 
     <div class="progress-track"><div class="progress-fill" style="width: ${progressPct}%"></div></div>
-    <p class="progress-label">${formatWon(userConfig.currentSavings)} / ${formatWon(userConfig.targetAmount)} (${progressPct}%)</p>
+    <p class="progress-label">${formatWon(stats.totalProtectedAmount)} / ${formatWon(userConfig.targetAmount)} (${progressPct}%)</p>
 
     <div class="stat-grid">
       <div class="stat-card">
@@ -39,7 +39,20 @@ async function render() {
     </div>
 
     <div class="settings">
-      <h2>내 설정</h2>
+      <h2>목표 자산 설정</h2>
+
+      <div class="field">
+        <label for="pb-target">목표 금액 (원)</label>
+        <input type="number" id="pb-target" value="${userConfig.targetAmount}" />
+        <div class="preset-group">
+          <button type="button" class="preset-btn ${userConfig.targetAmount === 30_000_000 ? 'active' : ''}" data-amount="30000000">3천만</button>
+          <button type="button" class="preset-btn ${userConfig.targetAmount === 50_000_000 ? 'active' : ''}" data-amount="50000000">5천만</button>
+          <button type="button" class="preset-btn ${userConfig.targetAmount === 100_000_000 ? 'active' : ''}" data-amount="100000000">1억</button>
+          <button type="button" class="preset-btn ${userConfig.targetAmount === 200_000_000 ? 'active' : ''}" data-amount="200000000">2억</button>
+        </div>
+      </div>
+
+      <h2 class="section-gap">내 설정</h2>
 
       <div class="field">
         <label>시급 입력 방식</label>
@@ -61,17 +74,24 @@ async function render() {
         <p class="caption">※ 주 40시간 근무 기준 (법정 유급휴일·주휴수당 포함, 월 209시간 적용)</p>
       </div>
 
-      <div class="field">
-        <label for="pb-monthly">월 저축 목표액 (원)</label>
-        <input type="number" id="pb-monthly" value="${userConfig.monthlyTarget}" />
-      </div>
-      <div class="field">
-        <label for="pb-savings">현재 모은 돈 (원)</label>
-        <input type="number" id="pb-savings" value="${userConfig.currentSavings}" />
-      </div>
       <button class="save-settings-btn" id="pb-save">설정 저장</button>
     </div>
   `
+
+  const targetInput = app.querySelector<HTMLInputElement>('#pb-target')!
+  const presetBtns = app.querySelectorAll<HTMLButtonElement>('.preset-btn')
+
+  async function syncTargetAmount(amount: number) {
+    if (!Number.isFinite(amount) || amount <= 0) return
+    await storage.setUserConfig({ targetAmount: amount })
+    render()
+  }
+
+  presetBtns.forEach((btn) => {
+    btn.addEventListener('click', () => syncTargetAmount(Number(btn.dataset.amount)))
+  })
+
+  targetInput.addEventListener('change', () => syncTargetAmount(Number(targetInput.value)))
 
   const hourlyField = app.querySelector<HTMLDivElement>('#pb-hourly-field')!
   const monthlyField = app.querySelector<HTMLDivElement>('#pb-monthly-field')!
@@ -105,8 +125,6 @@ async function render() {
       salaryType,
       monthlySalary,
       hourlyWage,
-      monthlyTarget: Number(app.querySelector<HTMLInputElement>('#pb-monthly')!.value) || userConfig.monthlyTarget,
-      currentSavings: Number(app.querySelector<HTMLInputElement>('#pb-savings')!.value) || userConfig.currentSavings,
     }
     await storage.setUserConfig(patch)
     saveBtn.textContent = '저장됨'
