@@ -140,6 +140,13 @@ body {
   margin: 6px 0 0;
 }
 
+.caption {
+  font-size: 10.5px;
+  color: #9aa0ab;
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
 .save-settings-btn {
   width: 100%;
   padding: 10px;

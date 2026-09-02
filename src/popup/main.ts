@@ -58,6 +58,7 @@ async function render() {
         <label for="pb-monthly-salary">월급 (실수령액, 원)</label>
         <input type="number" id="pb-monthly-salary" value="${userConfig.monthlySalary || ''}" />
         <p class="hint" id="pb-hourly-hint">환산 시급: ${calcHourlyFromMonthlySalary(userConfig.monthlySalary).toLocaleString('ko-KR')}원 (월급 ÷ 209시간)</p>
+        <p class="caption">※ 주 40시간 근무 기준 (법정 유급휴일·주휴수당 포함, 월 209시간 적용)</p>
       </div>
 
       <div class="field">
