@@ -32,5 +32,5 @@ export default defineManifest({
       run_at: 'document_idle',
     },
   ],
-  permissions: ['storage', 'tabs', 'activeTab'],
+  permissions: ['storage'],
 })

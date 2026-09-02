@@ -69,7 +69,7 @@ async function render() {
 
     <div class="tab-bar">
       <button type="button" class="tab-btn ${selectedTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">📊 대시보드</button>
-      <button type="button" class="tab-btn ${selectedTab === 'settings' ? 'active' : ''}" data-tab="settings">⚙️ 설정</button>
+      <button type="button" class="tab-btn ${selectedTab === 'settings' ? 'active' : ''}" data-tab="settings">⚙️ 환경설정</button>
     </div>
 
     <div class="tab-panel" ${selectedTab === 'dashboard' ? '' : 'hidden'}>
@@ -78,12 +78,12 @@ async function render() {
     ${stats.totalOverriddenAmount > 0 ? `<p class="override-warning">⚠ 결제 강행으로 ${formatWon(stats.totalOverriddenAmount)}이 게이지에서 차감되었습니다</p>` : ''}
 
     <div class="manual-override-section">
-      <button type="button" class="manual-override-toggle-btn" id="pb-manual-override-toggle">+ 외부 지출 기록</button>
+      <button type="button" class="manual-override-toggle-btn" id="pb-manual-override-toggle">+ 낭비 지출 차감</button>
       <div class="manual-override-form" id="pb-manual-override-form" hidden>
-        <p class="manual-override-hint">PayBreak이 감지하지 못한 오프라인/외부 결제도 여기에 기록하면 게이지에 정확히 반영됩니다.</p>
+        <p class="manual-override-hint">PayBreak이 감지하지 못한 오프라인/외부 낭비 지출도 여기에 기록하면 순 방어 게이지에서 즉시 차감됩니다.</p>
         <input type="number" class="manual-override-amount" id="pb-manual-amount" placeholder="지출 금액(원)" />
-        <input type="text" class="manual-override-note" id="pb-manual-note" placeholder="지출처 / 메모 (예: 스타벅스)" />
-        <button type="button" class="manual-override-submit-btn" id="pb-manual-override-submit">기록하기</button>
+        <input type="text" class="manual-override-note" id="pb-manual-note" placeholder="한 줄 메모 (예: 스타벅스)" />
+        <button type="button" class="manual-override-submit-btn" id="pb-manual-override-submit">차감하기</button>
         <p class="manual-override-feedback" id="pb-manual-override-feedback"></p>
       </div>
     </div>
@@ -219,11 +219,11 @@ async function render() {
   manualOverrideSubmitBtn.addEventListener('click', async () => {
     const amount = Number(manualOverrideAmountInput.value)
     if (!Number.isFinite(amount) || amount <= 0) return
-    const note = manualOverrideNoteInput.value.trim() || '기타 외부 지출'
+    const memo = manualOverrideNoteInput.value.trim() || '기타 낭비 지출'
 
     manualOverrideSubmitBtn.disabled = true
-    const { workHoursConsumed } = await storage.recordManualOverride(note, amount)
-    manualOverrideFeedback.textContent = `기록 완료: 노동 시간 ${workHoursConsumed}시간이 소모되었습니다.`
+    const { workHoursConsumed } = await storage.recordManualOverride(memo, amount)
+    manualOverrideFeedback.textContent = `차감 완료: 노동 시간 ${workHoursConsumed}시간이 소모되어 게이지에서 차감되었습니다.`
     setTimeout(() => render(), 900)
   })
 

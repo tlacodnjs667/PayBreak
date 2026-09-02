@@ -151,22 +151,23 @@
 * **영속화:** `userConfig`에 `targetMonths`, `monthlySavingsTarget` 필드 추가 후 `chrome.storage.local`에 저장. `targetAmount` 또는 `targetMonths`가 바뀔 때마다 `monthlySavingsTarget`도 함께 재계산하여 저장(둘 중 하나만 갱신되어 값이 어긋나는 상태 방지).
 * **결제창 모달 카피 연계:** 모달 내 `pb-monthly-warning` 문구로 "이번 결제(₩X)를 참으면 이번 달 저축 목표(₩{monthlySavingsTarget})의 +Y%를 즉시 채웁니다!" 노출. `Y% = Math.round((결제금액 / monthlySavingsTarget) * 100)`, 결제 금액이 바뀔 때마다(수동 입력 등) 실시간 재계산. `monthlySavingsTarget`이 0 이하이면(미설정) 문구를 표시하지 않음.
 
-### 3.8. 외부/오프라인 지출 수동 기록 (Direct Override)
+### 3.8. 외부/오프라인 낭비 지출 수동 차감 (Direct Override)
 
-* **배경:** PayBreak은 등록된 커머스 결제 페이지 진입만 감지하므로, 오프라인 결제나 감지 범위 밖 사이트에서의 지출은 게이지에 반영되지 않아 순 방어 게이지(`netSavings`)가 실제보다 부풀려질 수 있음. 이를 수동으로 보정하는 기록 기능을 제공.
-* **Popup UI:** 대시보드(진행률 게이지 하단, 통계 카드 위)에 `+ 외부 지출 기록` 토글 버튼 배치. 클릭 시 금액(`amount`)과 지출처/메모(`note`) 입력 폼이 펼쳐짐.
+* **배경:** PayBreak은 등록된 커머스 결제 페이지 진입만 감지하므로, 오프라인 결제나 감지 범위 밖 사이트에서의 낭비 지출은 게이지에 반영되지 않아 순 방어 게이지(`netSavings`)가 실제보다 부풀려질 수 있음. 이를 수동으로 보정하는 차감 기능을 제공.
+* **정책 (v1.2, 롤백 확정):** 가계부성 확장(날짜 선택, 카테고리 분기, 필수/충동 지출 유형 토글, 필수 고정비 별도 통계)은 코어 '결제 브레이커' 스코프를 벗어난다고 판단해 전면 롤백. 외부 지출 기록은 오직 "낭비 지출 차감" 하나의 단순 동작으로만 존재하며, 필수 고정비(월세·공과금 등)를 구분해 관리하는 로직은 포함하지 않는다.
+* **Popup UI:** 대시보드(진행률 게이지 하단, 통계 카드 위)에 `[+ 낭비 지출 차감]` 토글 버튼 배치. 클릭 시 금액(`amount`)과 한 줄 메모(`memo`) 입력 폼만 펼쳐짐.
 * **데이터 연산 및 차감 반영 (`storage.recordManualOverride`):**
-  * 입력 금액을 `stats.totalOverriddenAmount`에 가산(`+= amount`)하고 `stats.overrideCount`도 함께 `+= 1`하여 방어 성공률·Tier 산정에도 반영.
+  * 입력 금액을 결제 강행과 동일하게 `stats.totalOverriddenAmount`에 가산(`+= amount`)하고 `stats.overrideCount`도 함께 `+= 1`하여 방어 성공률·Tier 산정에도 반영.
   * `netSavings = Math.max(0, totalProtectedAmount - totalOverriddenAmount)`가 팝업 재렌더링 시 자동 재계산되어 게이지·목표 달성률이 즉시 차감 갱신됨.
-  * 당시 설정된 `userConfig.hourlyWage` 기준으로 소모된 노동 시간을 `calcWorkHours(amount, hourlyWage)`로 계산해 "노동 시간 N시간이 소모되었습니다" 피드백 문구로 즉시 표시.
-* **로그 적재 및 CSV 호환:** `protectedLogs`에 `{ siteDomain: "[수동입력] " + memo, amount, workHoursSaved: -(amount / hourlyWage), hourlyWageAtLog: userConfig.hourlyWage, isOverridden: true }` 형태로 동일 스키마에 적재하여 CSV 내보내기(비고 컬럼에 "외부 지출" 표시)와 완전 호환. `siteDomain`에 "[수동입력] " 접두어를 붙여 실제 감지된 결제 도메인과 시각적으로 구분. 방어 내역 리포트(일/월/연 집계)에서는 `isDuplicateAttempt` 로그와 동일하게 통계 합산에서 제외(방어 총액이 아닌 지출 기록이므로).
+  * 당시 설정된 `userConfig.hourlyWage` 기준으로 소모된 노동 시간을 `calcWorkHours(amount, hourlyWage)`로 계산해 "차감 완료: 노동 시간 N시간이 소모되어 게이지에서 차감되었습니다" 피드백 문구로 즉시 표시.
+* **로그 적재 및 CSV 호환:** `protectedLogs`에 `{ siteDomain: "[낭비차감] " + memo, amount, workHoursSaved: -(amount / hourlyWage), hourlyWageAtLog: userConfig.hourlyWage, isOverridden: true }` 형태로 동일 스키마에 적재하여 CSV 내보내기(비고 컬럼에 "낭비 지출 차감" 표시)와 완전 호환. `siteDomain`에 "[낭비차감] " 접두어를 붙여 실제 감지된 결제 도메인과 시각적으로 구분. 방어 내역 리포트(일/월/연 집계)에서는 `isDuplicateAttempt` 로그와 동일하게 통계 합산에서 제외(방어 총액이 아닌 차감 기록이므로).
 
-### 3.9. Popup UI 리팩토링: 대시보드/설정 탭 분리 (Tab Navigation)
+### 3.9. Popup UI 2-Tab 구조 확정 (Tab Navigation)
 
-* **배경:** 팝업에 순 방어 게이지·외부 지출 기록·6종 통계 카드·리포트·목표 설정·급여 설정이 한 화면에 모두 쌓이며 세로 스크롤이 길어짐. 정보 계층을 "확인/기록(대시보드)"과 "구성(설정)"으로 분리.
-* **상단 탭 바:** 헤더(`title`/Tier Badge)·태그라인 아래에 `[📊 대시보드]` / `[⚙️ 설정]` 2단 탭 신설. 기본 활성 탭은 `대시보드`. 탭 상태는 팝업 세션 내 메모리 변수(`selectedTab`)로 유지, 클릭 시 즉시 재렌더링.
-* **대시보드 탭 구성:** 순 방어 프로그레스 바(+ 강행 차감 경고문), `[+ 외부 지출 기록]` 토글 폼, 6그리드 통계 카드(총 방어/강행 누적/방어 횟수/강행 횟수/방어 성공률/순 방어 금액), 방어 내역 리포트(일/월/연 탭 + 리스트), `[CSV로 내보내기]` 버튼.
-* **설정 탭 구성:** 목표 금액(`targetAmount`) 입력 + 프리셋, 목표 기간(`targetMonths`) 입력 + 프리셋 + 월 필요 저축액 역산 안내 카드, 급여 설정(시급 직접 입력 / 월급 209시간 역산 토글), `[설정 저장]` 버튼.
+* **배경:** 팝업에 순 방어 게이지·낭비 지출 차감·6종 통계 카드·리포트·목표 설정·급여 설정이 한 화면에 모두 쌓이며 세로 스크롤이 길어짐. 정보 계층을 "확인/기록(대시보드)"과 "구성(환경설정)"으로 분리.
+* **상단 탭 바:** 헤더(`title`/Tier Badge)·태그라인 아래에 `[📊 대시보드]` / `[⚙️ 환경설정]` 2단 탭 신설. 기본 활성 탭은 `대시보드`. 탭 상태는 팝업 세션 내 메모리 변수(`selectedTab`)로 유지, 클릭 시 즉시 재렌더링.
+* **탭 1 [📊 대시보드]:** 순 방어 게이지(프로그레스 바 + 강행 차감 경고문), `[+ 낭비 지출 차감]` 토글 폼, 6그리드 통계 카드(총 방어/강행 누적/방어 횟수/강행 횟수/방어 성공률/순 방어 금액), 방어 로그 리포트(일/월/연 탭 + 리스트), `[CSV 내보내기]` 버튼.
+* **탭 2 [⚙️ 환경설정]:** 목표 금액(`targetAmount`) 입력 + 프리셋, 목표 기간(`targetMonths`) 입력 + 프리셋 + 월 필요 저축액 역산 안내 카드, 급여 설정(시급 직접 입력 / 월급 209시간 역산 토글 + 안내 캡션), `[설정 저장]` 버튼.
 * **레이아웃 최적화:** 크롬 익스텐션 팝업 표시 한계(최대 높이 약 600px)를 고려해 `#app` 패딩과 각 섹션 간 여백(`margin-bottom`/`padding-top`)을 축소하고 리포트 리스트의 `max-height`를 줄여, 탭 분리와 함께 양쪽 탭 모두 불필요한 스크롤 없이 들어가도록 조정. `body`에 `max-height: 600px; overflow-y: auto`를 명시해 안전장치로 유지.
 
 ---
@@ -211,7 +212,7 @@
 
 ## 5. Antigravity 개발 인계 체크리스트
 
-* [ ] **Manifest V3:** `storage`, `tabs`, `activeTab` 권한 등록 및 커머스 호스트 URL 등록
+* [x] **Manifest V3:** `permissions: ["storage"]`만 등록(최소 권한 원칙 — `chrome.tabs.remove()`는 `tabs`/`activeTab` 권한 없이도 호출 가능하므로 미사용 권한 제거, Chrome Web Store 심사 정책 대응), `content_scripts.matches`로 `http://*/*`/`https://*/*` 커머스 호스트 대응
 * [ ] **Content Script Injection:** 페이지 로드 완료 전 최상단 오버레이 주입 및 배경 스크롤 차단 (`overflow: hidden`)
 * [ ] **Price Extractor:** 정규식/키워드 텍스트 스캔을 1차 방식으로 구현 (셀렉터 클래스 의존 금지), 실패 시 Fallback 수동 인풋 UI 제공
 * [ ] **Verification Logic:** 30초 타이머 인터벌 및 텍스트 `onChange` 일치 검증 로직 구현
@@ -225,5 +226,5 @@
 * [x] **Duplicate Defense Abuse Cap:** 동일 도메인 10분 이내 연속 방어 로그는 `protectedLogs`에 `isDuplicateAttempt: true`로 기록하되 `totalProtectedAmount`/`protectedCount` 통계 누적 및 리포트 집계·CSV 합산에서 제외 (CSV "비고" 컬럼에 "중복 시도" 표시)
 * [x] **Hotfix — CSV 당시시급 undefined:** `ProtectedLog.hourlyWageAtLog`를 optional로 전환(구버전 로그 호환), CSV 생성 시 값 누락 시 `Math.round(amount / workHoursSaved)`로 역산하는 Fallback 적용
 * [x] **Target Timeline & Monthly Savings Guide:** `userConfig`에 `targetMonths`/`monthlySavingsTarget` 추가, Popup에 목표 기간 입력 + 프리셋 칩(1/2/3/5년) 및 실시간 월 저축액 가이드 카드 구현, 결제창 모달에 이번 달 저축 목표 대비 소진율(%) 카피 연계
-* [x] **Direct Override (외부/오프라인 지출 수동 기록):** Popup에 `+ 외부 지출 기록` 토글 폼 추가, `storage.recordManualOverride`로 `totalOverriddenAmount`/`overrideCount` 갱신 및 소모 노동 시간 피드백 표시, `protectedLogs`에 `isOverridden: true` 로그로 적재하여 CSV/리포트 파이프라인과 호환(리포트 집계에서는 제외)
+* [x] **Direct Override (외부/오프라인 낭비 지출 수동 차감):** Popup에 `+ 낭비 지출 차감` 토글 폼 추가(금액+한 줄 메모만 입력), `storage.recordManualOverride`로 `totalOverriddenAmount`/`overrideCount` 갱신 및 소모 노동 시간 피드백 표시, `protectedLogs`에 `{ siteDomain: "[낭비차감] " + memo, isOverridden: true }` 로그로 적재하여 CSV/리포트 파이프라인과 호환(리포트 집계에서는 제외). 날짜 선택/카테고리 분기/필수·충동 유형 토글 등 가계부성 확장은 코어 스코프 이탈로 판단해 도입하지 않음(v1.2 결정)
 * [x] **Popup 탭 분리 (대시보드/설정):** 상단 `[📊 대시보드]`/`[⚙️ 설정]` 탭 바 추가, 게이지·외부 지출 기록·통계 카드·리포트·CSV 버튼은 대시보드 탭으로, 목표/기간/급여 설정과 설정 저장 버튼은 설정 탭으로 재배치, 600px 팝업 높이 제약에 맞춰 패딩/여백 축소

@@ -56,7 +56,7 @@ function toCsv(logs: ProtectedLog[]): string {
     String(log.amount),
     String(log.workHoursSaved),
     resolveHourlyWageAtLog(log),
-    log.isDuplicateAttempt ? '중복 시도' : log.isOverridden ? '외부 지출' : '',
+    log.isDuplicateAttempt ? '중복 시도' : log.isOverridden ? '낭비 지출 차감' : '',
   ])
   return [header, ...rows].map((row) => row.map(escapeCsvField).join(',')).join('\r\n')
 }

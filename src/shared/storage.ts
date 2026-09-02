@@ -78,14 +78,14 @@ async function recordOverride(amount: number): Promise<void> {
  * the same way a checkout override does, and appends a protectedLogs entry (negative
  * workHoursSaved, isOverridden: true) so it flows through the existing report/CSV pipeline.
  */
-async function recordManualOverride(note: string, amount: number): Promise<{ workHoursConsumed: number }> {
+async function recordManualOverride(memo: string, amount: number): Promise<{ workHoursConsumed: number }> {
   const { stats, protectedLogs, userConfig } = await getAll()
   const workHoursConsumed = calcWorkHours(amount, userConfig.hourlyWage)
 
   const log: ProtectedLog = {
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
-    siteDomain: `[수동입력] ${note}`,
+    siteDomain: `[낭비차감] ${memo}`,
     amount,
     workHoursSaved: -workHoursConsumed,
     hourlyWageAtLog: userConfig.hourlyWage,
