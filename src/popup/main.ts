@@ -22,6 +22,9 @@ const PERIOD_LABELS: Record<ReportPeriod, string> = {
 
 let selectedPeriod: ReportPeriod = 'monthly'
 
+type Tab = 'dashboard' | 'settings'
+let selectedTab: Tab = 'dashboard'
+
 function renderReportRows(protectedLogs: Awaited<ReturnType<typeof storage.getAll>>['protectedLogs'], period: ReportPeriod): string {
   const aggregates = aggregateByPeriod(protectedLogs, period)
   if (aggregates.length === 0) {
@@ -64,6 +67,12 @@ async function render() {
     </div>
     <p class="tagline">결제 직전 30초의 브레이크, 1억 달성을 지킵니다.</p>
 
+    <div class="tab-bar">
+      <button type="button" class="tab-btn ${selectedTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">📊 대시보드</button>
+      <button type="button" class="tab-btn ${selectedTab === 'settings' ? 'active' : ''}" data-tab="settings">⚙️ 설정</button>
+    </div>
+
+    <div class="tab-panel" ${selectedTab === 'dashboard' ? '' : 'hidden'}>
     <div class="progress-track"><div class="progress-fill" style="width: ${progressPct}%"></div></div>
     <p class="progress-label">순 방어 ${formatWon(netSavings)} / ${formatWon(userConfig.targetAmount)} (${progressPct}%)</p>
     ${stats.totalOverriddenAmount > 0 ? `<p class="override-warning">⚠ 결제 강행으로 ${formatWon(stats.totalOverriddenAmount)}이 게이지에서 차감되었습니다</p>` : ''}
@@ -121,7 +130,9 @@ async function render() {
       </div>
       <button class="csv-export-btn" id="pb-csv-export">CSV로 내보내기</button>
     </div>
+    </div>
 
+    <div class="tab-panel" ${selectedTab === 'settings' ? '' : 'hidden'}>
     <div class="settings">
       <h2>목표 자산 설정</h2>
 
@@ -172,7 +183,16 @@ async function render() {
 
       <button class="save-settings-btn" id="pb-save">설정 저장</button>
     </div>
+    </div>
   `
+
+  const tabBtns = app.querySelectorAll<HTMLButtonElement>('.tab-btn')
+  tabBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectedTab = btn.dataset.tab as Tab
+      render()
+    })
+  })
 
   const periodTabs = app.querySelectorAll<HTMLButtonElement>('.period-tab')
   periodTabs.forEach((btn) => {

@@ -9,13 +9,15 @@
 body {
   margin: 0;
   width: 320px;
+  max-height: 600px;
+  overflow-y: auto;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, "Malgun Gothic", sans-serif;
   background: #16181f;
   color: #f5f5f7;
 }
 
 #app {
-  padding: 20px;
+  padding: 16px 18px;
 }
 
 .header-row {
@@ -34,7 +36,43 @@ body {
 .tagline {
   font-size: 11px;
   color: #9aa0ab;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
+}
+
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 1px solid #3a3d47;
+  background: #0e0f14;
+  color: #9aa0ab;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-btn:hover {
+  border-color: #3b82f6;
+}
+
+.tab-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.tab-panel {
+  display: block;
+}
+
+.tab-panel[hidden] {
+  display: none;
 }
 
 .tier-badge {
@@ -92,11 +130,11 @@ body {
 .progress-label {
   font-size: 12px;
   color: #9aa0ab;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .manual-override-section {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .manual-override-toggle-btn {
@@ -169,14 +207,14 @@ body {
 .stat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .stat-card {
   background: #0e0f14;
   border-radius: 10px;
-  padding: 12px;
+  padding: 10px;
 }
 
 .stat-card .value {
@@ -200,8 +238,8 @@ body {
 
 .report-section {
   border-top: 1px solid #2a2d36;
-  padding-top: 16px;
-  margin-bottom: 16px;
+  padding-top: 14px;
+  margin-bottom: 12px;
 }
 
 .report-section h2 {
@@ -240,7 +278,7 @@ body {
 }
 
 .report-list {
-  max-height: 140px;
+  max-height: 110px;
   overflow-y: auto;
   background: #0e0f14;
   border-radius: 8px;
@@ -300,8 +338,7 @@ body {
 }
 
 .settings {
-  border-top: 1px solid #2a2d36;
-  padding-top: 16px;
+  padding-top: 2px;
 }
 
 .settings h2 {
@@ -312,7 +349,7 @@ body {
 }
 
 .settings h2.section-gap {
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .preset-group {

@@ -85,7 +85,7 @@ async function recordManualOverride(note: string, amount: number): Promise<{ wor
   const log: ProtectedLog = {
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
-    siteDomain: note,
+    siteDomain: `[수동입력] ${note}`,
     amount,
     workHoursSaved: -workHoursConsumed,
     hourlyWageAtLog: userConfig.hourlyWage,
