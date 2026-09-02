@@ -1,6 +1,13 @@
 import { storage } from '../shared/storage'
 import type { SalaryType, UserConfig } from '../shared/types'
-import { calcHourlyFromMonthlySalary } from '../shared/calculations'
+import {
+  calcDefenseRate,
+  calcDefenseTier,
+  calcHourlyFromMonthlySalary,
+  calcMonthlySavingsTarget,
+  calcNetSavings,
+  type DefenseTier,
+} from '../shared/calculations'
 import { aggregateByPeriod, downloadProtectedLogsCsv, type ReportPeriod } from './report'
 
 function formatWon(amount: number): string {
@@ -33,23 +40,53 @@ function renderReportRows(protectedLogs: Awaited<ReturnType<typeof storage.getAl
     .join('')
 }
 
+const TIER_LABELS: Record<DefenseTier, string> = {
+  S: 'S등급',
+  A: 'A등급',
+  B: 'B등급',
+  C: 'C등급',
+  F: 'F등급',
+}
+
 async function render() {
   const { userConfig, stats, protectedLogs } = await storage.getAll()
   const app = document.getElementById('app')!
 
-  const progressPct = Math.min(100, Math.round((stats.totalProtectedAmount / userConfig.targetAmount) * 100))
+  const netSavings = calcNetSavings(stats.totalProtectedAmount, stats.totalOverriddenAmount)
+  const defenseRate = calcDefenseRate(stats.protectedCount, stats.overrideCount)
+  const tier = calcDefenseTier(defenseRate)
+  const progressPct = Math.min(100, Math.round((netSavings / userConfig.targetAmount) * 100))
 
   app.innerHTML = `
-    <p class="title">PayBreak</p>
+    <div class="header-row">
+      <p class="title">PayBreak</p>
+      ${tier ? `<span class="tier-badge tier-${tier}">${TIER_LABELS[tier]}</span>` : ''}
+    </div>
     <p class="tagline">결제 직전 30초의 브레이크, 1억 달성을 지킵니다.</p>
 
     <div class="progress-track"><div class="progress-fill" style="width: ${progressPct}%"></div></div>
-    <p class="progress-label">${formatWon(stats.totalProtectedAmount)} / ${formatWon(userConfig.targetAmount)} (${progressPct}%)</p>
+    <p class="progress-label">순 방어 ${formatWon(netSavings)} / ${formatWon(userConfig.targetAmount)} (${progressPct}%)</p>
+    ${stats.totalOverriddenAmount > 0 ? `<p class="override-warning">⚠ 결제 강행으로 ${formatWon(stats.totalOverriddenAmount)}이 게이지에서 차감되었습니다</p>` : ''}
+
+    <div class="manual-override-section">
+      <button type="button" class="manual-override-toggle-btn" id="pb-manual-override-toggle">+ 외부 지출 기록</button>
+      <div class="manual-override-form" id="pb-manual-override-form" hidden>
+        <p class="manual-override-hint">PayBreak이 감지하지 못한 오프라인/외부 결제도 여기에 기록하면 게이지에 정확히 반영됩니다.</p>
+        <input type="number" class="manual-override-amount" id="pb-manual-amount" placeholder="지출 금액(원)" />
+        <input type="text" class="manual-override-note" id="pb-manual-note" placeholder="지출처 / 메모 (예: 스타벅스)" />
+        <button type="button" class="manual-override-submit-btn" id="pb-manual-override-submit">기록하기</button>
+        <p class="manual-override-feedback" id="pb-manual-override-feedback"></p>
+      </div>
+    </div>
 
     <div class="stat-grid">
       <div class="stat-card">
         <div class="value protected">${formatWon(stats.totalProtectedAmount)}</div>
         <div class="label">총 방어 성공 금액</div>
+      </div>
+      <div class="stat-card">
+        <div class="value override">${formatWon(stats.totalOverriddenAmount)}</div>
+        <div class="label">결제 강행 누적액</div>
       </div>
       <div class="stat-card">
         <div class="value protected">${stats.protectedCount}</div>
@@ -60,8 +97,12 @@ async function render() {
         <div class="label">결제 강행 횟수</div>
       </div>
       <div class="stat-card">
-        <div class="value">${stats.protectedCount + stats.overrideCount === 0 ? '-' : `${Math.round((stats.protectedCount / (stats.protectedCount + stats.overrideCount)) * 100)}%`}</div>
-        <div class="label">이탈률</div>
+        <div class="value">${defenseRate === null ? '-' : `${defenseRate}%`}</div>
+        <div class="label">방어 성공률</div>
+      </div>
+      <div class="stat-card">
+        <div class="value protected">${formatWon(netSavings)}</div>
+        <div class="label">순 방어 금액</div>
       </div>
     </div>
 
@@ -93,6 +134,18 @@ async function render() {
           <button type="button" class="preset-btn ${userConfig.targetAmount === 100_000_000 ? 'active' : ''}" data-amount="100000000">1억</button>
           <button type="button" class="preset-btn ${userConfig.targetAmount === 200_000_000 ? 'active' : ''}" data-amount="200000000">2억</button>
         </div>
+      </div>
+
+      <div class="field">
+        <label for="pb-target-months">목표 달성 기간 (개월)</label>
+        <input type="number" id="pb-target-months" value="${userConfig.targetMonths}" />
+        <div class="preset-group">
+          <button type="button" class="preset-btn ${userConfig.targetMonths === 12 ? 'active' : ''}" data-months="12">1년</button>
+          <button type="button" class="preset-btn ${userConfig.targetMonths === 24 ? 'active' : ''}" data-months="24">2년</button>
+          <button type="button" class="preset-btn ${userConfig.targetMonths === 36 ? 'active' : ''}" data-months="36">3년</button>
+          <button type="button" class="preset-btn ${userConfig.targetMonths === 60 ? 'active' : ''}" data-months="60">5년</button>
+        </div>
+        <p class="hint" id="pb-monthly-savings-hint">매달 약 ${calcMonthlySavingsTarget(userConfig.targetAmount, userConfig.targetMonths).toLocaleString('ko-KR')}원씩 모아야 목표를 달성할 수 있습니다.</p>
       </div>
 
       <h2 class="section-gap">내 설정</h2>
@@ -132,20 +185,68 @@ async function render() {
   const csvExportBtn = app.querySelector<HTMLButtonElement>('#pb-csv-export')!
   csvExportBtn.addEventListener('click', () => downloadProtectedLogsCsv(protectedLogs))
 
+  const manualOverrideToggleBtn = app.querySelector<HTMLButtonElement>('#pb-manual-override-toggle')!
+  const manualOverrideForm = app.querySelector<HTMLDivElement>('#pb-manual-override-form')!
+  const manualOverrideAmountInput = app.querySelector<HTMLInputElement>('#pb-manual-amount')!
+  const manualOverrideNoteInput = app.querySelector<HTMLInputElement>('#pb-manual-note')!
+  const manualOverrideSubmitBtn = app.querySelector<HTMLButtonElement>('#pb-manual-override-submit')!
+  const manualOverrideFeedback = app.querySelector<HTMLParagraphElement>('#pb-manual-override-feedback')!
+
+  manualOverrideToggleBtn.addEventListener('click', () => {
+    manualOverrideForm.hidden = !manualOverrideForm.hidden
+  })
+
+  manualOverrideSubmitBtn.addEventListener('click', async () => {
+    const amount = Number(manualOverrideAmountInput.value)
+    if (!Number.isFinite(amount) || amount <= 0) return
+    const note = manualOverrideNoteInput.value.trim() || '기타 외부 지출'
+
+    manualOverrideSubmitBtn.disabled = true
+    const { workHoursConsumed } = await storage.recordManualOverride(note, amount)
+    manualOverrideFeedback.textContent = `기록 완료: 노동 시간 ${workHoursConsumed}시간이 소모되었습니다.`
+    setTimeout(() => render(), 900)
+  })
+
   const targetInput = app.querySelector<HTMLInputElement>('#pb-target')!
-  const presetBtns = app.querySelectorAll<HTMLButtonElement>('.preset-btn')
+  const targetMonthsInput = app.querySelector<HTMLInputElement>('#pb-target-months')!
+  const monthlySavingsHint = app.querySelector<HTMLParagraphElement>('#pb-monthly-savings-hint')!
+  const amountPresetBtns = app.querySelectorAll<HTMLButtonElement>('.preset-btn[data-amount]')
+  const monthPresetBtns = app.querySelectorAll<HTMLButtonElement>('.preset-btn[data-months]')
+
+  function updateMonthlySavingsHint() {
+    const amount = Number(targetInput.value) || userConfig.targetAmount
+    const months = Number(targetMonthsInput.value) || userConfig.targetMonths
+    const target = calcMonthlySavingsTarget(amount, months)
+    monthlySavingsHint.textContent = `매달 약 ${target.toLocaleString('ko-KR')}원씩 모아야 목표를 달성할 수 있습니다.`
+  }
 
   async function syncTargetAmount(amount: number) {
     if (!Number.isFinite(amount) || amount <= 0) return
-    await storage.setUserConfig({ targetAmount: amount })
+    const months = Number(targetMonthsInput.value) || userConfig.targetMonths
+    await storage.setUserConfig({ targetAmount: amount, monthlySavingsTarget: calcMonthlySavingsTarget(amount, months) })
     render()
   }
 
-  presetBtns.forEach((btn) => {
+  async function syncTargetMonths(months: number) {
+    if (!Number.isFinite(months) || months <= 0) return
+    const amount = Number(targetInput.value) || userConfig.targetAmount
+    await storage.setUserConfig({ targetMonths: months, monthlySavingsTarget: calcMonthlySavingsTarget(amount, months) })
+    render()
+  }
+
+  amountPresetBtns.forEach((btn) => {
     btn.addEventListener('click', () => syncTargetAmount(Number(btn.dataset.amount)))
   })
 
+  monthPresetBtns.forEach((btn) => {
+    btn.addEventListener('click', () => syncTargetMonths(Number(btn.dataset.months)))
+  })
+
+  targetInput.addEventListener('input', updateMonthlySavingsHint)
   targetInput.addEventListener('change', () => syncTargetAmount(Number(targetInput.value)))
+
+  targetMonthsInput.addEventListener('input', updateMonthlySavingsHint)
+  targetMonthsInput.addEventListener('change', () => syncTargetMonths(Number(targetMonthsInput.value)))
 
   const hourlyField = app.querySelector<HTMLDivElement>('#pb-hourly-field')!
   const monthlyField = app.querySelector<HTMLDivElement>('#pb-monthly-field')!

@@ -98,7 +98,26 @@
 
 
 
-### 3.4. 익스텐션 팝업 대시보드 (Popup UI)
+### 3.4. 도덕적 해이 방지 및 순(Net) 방어 게이지 (Anti-Abuse & Net Gauge)
+
+* **순(Net) 방어 게이지 및 결제 강행 차감:**
+  * `stats`에 `totalOverriddenAmount`(결제 강행 누적액) 필드 추가.
+  * 30초 쿨다운과 문장 검증을 통과하고 [결제 진행하기]를 클릭한 경우(`RECORD_OVERRIDE`), 해당 결제 금액을 `totalOverriddenAmount`에 가산.
+  * 대시보드 게이지 연산식: `netSavings = Math.max(0, totalProtectedAmount - totalOverriddenAmount)`. 강행 결제 발생 시 게이지가 차감되며 팝업 상단에 위험 경고 문구 노출.
+* **방어 성공률(Defense Rate) 등급 시스템:**
+  * 계산식: `defenseRate = Math.round((protectedCount / (protectedCount + overrideCount)) * 100)`.
+  * 등급 기준: 95% 이상 S / 80% 이상 A / 65% 이상 B / 50% 이상 C / 50% 미만 F.
+  * 팝업 대시보드 상단에 방어 등급(Tier Badge) 노출.
+* **중복 방어 어뷰징 캡 (Short-term Abuse Prevention):**
+  * 동일 도메인(`siteDomain`)에서 10분 이내에 연속으로 결제창을 닫아 발생하는 방어 로그는 `protectedLogs`에는 그대로 기록(`isDuplicateAttempt: true`)하되, `totalProtectedAmount`·`protectedCount` 등 통계 누적에서는 제외.
+  * 방어 내역 리포트(일/월/연 집계) 및 CSV 내보내기는 `isDuplicateAttempt` 로그를 통계 합산에서 제외하고, CSV에는 "비고" 컬럼에 "중복 시도"로 표시.
+
+### 3.5. 팝업 리포트 CSV 당시시급 Fallback (Hotfix)
+
+* `hourlyWageAtLog` 필드 도입 이전에 기록된 구버전 `protectedLogs`는 해당 키가 storage에 존재하지 않아 CSV의 "당시시급" 컬럼이 `undefined`로 출력되는 문제가 있었음.
+* `ProtectedLog.hourlyWageAtLog`를 optional로 전환하고, CSV 생성 시 값이 없으면 `Math.round(amount / workHoursSaved)`로 역산하여 채우는 Fallback 적용.
+
+### 3.6. 익스텐션 팝업 대시보드 (Popup UI)
 
 * **목표 현황:** 프로그레스 바 (총 방어 성공 금액 `totalProtectedAmount` / 유저 설정 목표 금액 `targetAmount`, 기본값 100,000,000원). [구매 포기]를 누를 때마다 `totalProtectedAmount`가 누적되어 게이지가 차오름.
 * **목표 금액 커스텀 설정:**
@@ -125,6 +144,23 @@
 * 파일명 포맷: `PayBreak_Savings_YYYYMMDD.csv`.
 * 컬럼: 날짜, 사이트, 결제금액, 노동시간, 당시시급(`hourlyWageAtLog` — 로그 기록 시점의 `hourlyWage` 스냅샷, 이후 시급이 바뀌어도 과거 기록은 왜곡되지 않도록 보존).
 
+### 3.7. 목표 달성 기간 설정 및 월 저축액 가이드 산출 (Target Timeline & Monthly Savings Guide)
+
+* **Popup 설정 UI 확장:** "목표 자산 설정" 섹션에 `targetMonths`(목표 달성 기간, 개월 수) 입력 필드와 프리셋 칩 [1년(12)] / [2년(24)] / [3년(36)] / [5년(60)] 추가. 목표 금액 프리셋과 동일하게 입력/클릭 즉시 `userConfig`에 동기화(설정 저장 버튼 대기 없음).
+* **실시간 연산 결과 카드:** `monthlySavingsTarget = Math.round(targetAmount / targetMonths)`를 목표 금액·목표 기간 입력 시 실시간 재계산하여 "매달 약 {monthlySavingsTarget}원씩 모아야 목표를 달성할 수 있습니다." 안내 문구로 노출.
+* **영속화:** `userConfig`에 `targetMonths`, `monthlySavingsTarget` 필드 추가 후 `chrome.storage.local`에 저장. `targetAmount` 또는 `targetMonths`가 바뀔 때마다 `monthlySavingsTarget`도 함께 재계산하여 저장(둘 중 하나만 갱신되어 값이 어긋나는 상태 방지).
+* **결제창 모달 카피 연계:** 모달 내 `pb-monthly-warning` 문구로 "이번 결제(₩X)를 참으면 이번 달 저축 목표(₩{monthlySavingsTarget})의 +Y%를 즉시 채웁니다!" 노출. `Y% = Math.round((결제금액 / monthlySavingsTarget) * 100)`, 결제 금액이 바뀔 때마다(수동 입력 등) 실시간 재계산. `monthlySavingsTarget`이 0 이하이면(미설정) 문구를 표시하지 않음.
+
+### 3.8. 외부/오프라인 지출 수동 기록 (Direct Override)
+
+* **배경:** PayBreak은 등록된 커머스 결제 페이지 진입만 감지하므로, 오프라인 결제나 감지 범위 밖 사이트에서의 지출은 게이지에 반영되지 않아 순 방어 게이지(`netSavings`)가 실제보다 부풀려질 수 있음. 이를 수동으로 보정하는 기록 기능을 제공.
+* **Popup UI:** 대시보드(진행률 게이지 하단, 통계 카드 위)에 `+ 외부 지출 기록` 토글 버튼 배치. 클릭 시 금액(`amount`)과 지출처/메모(`note`) 입력 폼이 펼쳐짐.
+* **데이터 연산 및 차감 반영 (`storage.recordManualOverride`):**
+  * 입력 금액을 `stats.totalOverriddenAmount`에 가산(`+= amount`)하고 `stats.overrideCount`도 함께 `+= 1`하여 방어 성공률·Tier 산정에도 반영.
+  * `netSavings = Math.max(0, totalProtectedAmount - totalOverriddenAmount)`가 팝업 재렌더링 시 자동 재계산되어 게이지·목표 달성률이 즉시 차감 갱신됨.
+  * 당시 설정된 `userConfig.hourlyWage` 기준으로 소모된 노동 시간을 `calcWorkHours(amount, hourlyWage)`로 계산해 "노동 시간 N시간이 소모되었습니다" 피드백 문구로 즉시 표시.
+* **로그 적재 및 CSV 호환:** `protectedLogs`에 `{ siteDomain: note, amount, workHoursSaved: -workHoursConsumed, hourlyWageAtLog: userConfig.hourlyWage, isOverridden: true }` 형태로 동일 스키마에 적재하여 CSV 내보내기(비고 컬럼에 "외부 지출" 표시)와 완전 호환. 방어 내역 리포트(일/월/연 집계)에서는 `isDuplicateAttempt` 로그와 동일하게 통계 합산에서 제외(방어 총액이 아닌 지출 기록이므로).
+
 ---
 
 ## 4. 로컬 데이터 스키마 명세 (Chrome Local Storage)
@@ -135,6 +171,8 @@
 {
   "userConfig": {
     "targetAmount": 100000000,
+    "targetMonths": 60,
+    "monthlySavingsTarget": 1666667,
     "hourlyWage": 15000,
     "cooldownSeconds": 30,
     "salaryType": "hourly",
@@ -142,6 +180,7 @@
   },
   "stats": {
     "totalProtectedAmount": 0,
+    "totalOverriddenAmount": 0,
     "protectedCount": 0,
     "overrideCount": 0
   },
@@ -152,7 +191,8 @@
       "siteDomain": "coupang.com",
       "amount": 89000,
       "workHoursSaved": 5.9,
-      "hourlyWageAtLog": 15000
+      "hourlyWageAtLog": 15000,
+      "isDuplicateAttempt": false
     }
   ]
 }
@@ -172,3 +212,9 @@
 * [ ] **Custom Target Amount:** Popup에 목표 금액 입력 필드 + 프리셋 버튼(3천만/5천만/1억/2억) 구현, 클릭/입력 즉시 `userConfig.targetAmount`에 동기화; 결제창 모달의 지연일 경고 문구·타이핑 검증 문장·세이브 버튼 텍스트를 `targetAmount` 기준으로 동적 생성(한국식 단위 포맷팅)
 * [ ] **Gauge Model Migration (v1.1):** `userConfig`에서 `monthlyTarget`/`currentSavings` 제거, `calcDelayDays` → `calcGaugeGainPercent`로 대체, 모달 상단 문구를 게이지 증가율(%) 기반으로 전환, Popup 프로그레스 바를 `totalProtectedAmount / targetAmount` 기준으로 전환
 * [ ] **Protection Log Report & CSV Export:** Popup에 `protectedLogs` 일별/월별/연별 집계 탭(기간별 총 방어 금액·누적 노동 시간 합산) 추가, Blob + `URL.createObjectURL` 기반 CSV 다운로드 구현 (UTF-8 BOM 포함, 파일명 `PayBreak_Savings_YYYYMMDD.csv`, 컬럼: 날짜/사이트/결제금액/노동시간/당시시급). `ProtectedLog`에 `hourlyWageAtLog` 필드 추가하여 로그 시점의 시급을 보존
+* [x] **Net Gauge & Override Deduction:** `stats.totalOverriddenAmount` 추가, `RECORD_OVERRIDE` 메시지에 결제 금액을 실어 강행 시 누적, Popup 게이지를 `netSavings = Math.max(0, totalProtectedAmount - totalOverriddenAmount)` 기준으로 전환, 강행 발생 시 위험 경고 문구 노출
+* [x] **Defense Tier Badge:** `defenseRate = Math.round(protectedCount / (protectedCount + overrideCount) * 100)` 계산 후 95%↑ S / 80%↑ A / 65%↑ B / 50%↑ C / 미만 F 등급 산정, Popup 상단에 Tier Badge 노출
+* [x] **Duplicate Defense Abuse Cap:** 동일 도메인 10분 이내 연속 방어 로그는 `protectedLogs`에 `isDuplicateAttempt: true`로 기록하되 `totalProtectedAmount`/`protectedCount` 통계 누적 및 리포트 집계·CSV 합산에서 제외 (CSV "비고" 컬럼에 "중복 시도" 표시)
+* [x] **Hotfix — CSV 당시시급 undefined:** `ProtectedLog.hourlyWageAtLog`를 optional로 전환(구버전 로그 호환), CSV 생성 시 값 누락 시 `Math.round(amount / workHoursSaved)`로 역산하는 Fallback 적용
+* [x] **Target Timeline & Monthly Savings Guide:** `userConfig`에 `targetMonths`/`monthlySavingsTarget` 추가, Popup에 목표 기간 입력 + 프리셋 칩(1/2/3/5년) 및 실시간 월 저축액 가이드 카드 구현, 결제창 모달에 이번 달 저축 목표 대비 소진율(%) 카피 연계
+* [x] **Direct Override (외부/오프라인 지출 수동 기록):** Popup에 `+ 외부 지출 기록` 토글 폼 추가, `storage.recordManualOverride`로 `totalOverriddenAmount`/`overrideCount` 갱신 및 소모 노동 시간 피드백 표시, `protectedLogs`에 `isOverridden: true` 로그로 적재하여 CSV/리포트 파이프라인과 호환(리포트 집계에서는 제외)

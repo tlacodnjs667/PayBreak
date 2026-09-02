@@ -22,6 +22,18 @@ export function calcGaugeGainPercent(amount: number, targetAmount: number): numb
   return Math.round((amount / targetAmount) * 1000) / 10
 }
 
+/** 목표 금액 / 목표 기간(개월) -> 월 필요 저축액 */
+export function calcMonthlySavingsTarget(targetAmount: number, targetMonths: number): number {
+  if (targetMonths <= 0) return 0
+  return Math.round(targetAmount / targetMonths)
+}
+
+/** 결제 금액 -> 이번 달 저축 목표 대비 소진율(%) (정수 반올림) */
+export function calcMonthlyGaugeGainPercent(amount: number, monthlySavingsTarget: number): number {
+  if (monthlySavingsTarget <= 0) return 0
+  return Math.round((amount / monthlySavingsTarget) * 100)
+}
+
 /** 5년 복리 기회비용 (연 8% 가정) */
 export function calcCompoundFutureValue(amount: number): number {
   return Math.round(amount * (1 + COMPOUND_ANNUAL_RATE) ** COMPOUND_YEARS)
@@ -45,9 +57,34 @@ export function formatKoreanAmount(amount: number): string {
   return `${parts.join(' ')} 원`
 }
 
+export type DefenseTier = 'S' | 'A' | 'B' | 'C' | 'F'
+
+/** 순 방어 게이지: 결제 강행 누적액을 방어 성공액에서 차감(음수 방지) */
+export function calcNetSavings(totalProtectedAmount: number, totalOverriddenAmount: number): number {
+  return Math.max(0, totalProtectedAmount - totalOverriddenAmount)
+}
+
+/** 방어 성공률(%) = 방어 횟수 / (방어 횟수 + 강행 횟수), 기록이 없으면 null */
+export function calcDefenseRate(protectedCount: number, overrideCount: number): number | null {
+  const total = protectedCount + overrideCount
+  if (total === 0) return null
+  return Math.round((protectedCount / total) * 100)
+}
+
+/** 방어 성공률 기반 등급: 95%+ S / 80%+ A / 65%+ B / 50%+ C / 그 외 F */
+export function calcDefenseTier(defenseRate: number | null): DefenseTier | null {
+  if (defenseRate === null) return null
+  if (defenseRate >= 95) return 'S'
+  if (defenseRate >= 80) return 'A'
+  if (defenseRate >= 65) return 'B'
+  if (defenseRate >= 50) return 'C'
+  return 'F'
+}
+
 export interface FrictionFigures {
   workHours: number
   gaugeGainPercent: number
+  monthlyGaugeGainPercent: number
   futureValue: number
 }
 
@@ -55,6 +92,7 @@ export function calcFrictionFigures(amount: number, config: UserConfig): Frictio
   return {
     workHours: calcWorkHours(amount, config.hourlyWage),
     gaugeGainPercent: calcGaugeGainPercent(amount, config.targetAmount),
+    monthlyGaugeGainPercent: calcMonthlyGaugeGainPercent(amount, config.monthlySavingsTarget),
     futureValue: calcCompoundFutureValue(amount),
   }
 }

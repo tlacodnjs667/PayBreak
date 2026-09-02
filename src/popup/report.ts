@@ -23,6 +23,7 @@ function periodKey(timestamp: string, period: ReportPeriod): string {
 export function aggregateByPeriod(logs: ProtectedLog[], period: ReportPeriod): PeriodAggregate[] {
   const map = new Map<string, PeriodAggregate>()
   for (const log of logs) {
+    if (log.isDuplicateAttempt || log.isOverridden) continue
     const key = periodKey(log.timestamp, period)
     const existing = map.get(key)
     if (existing) {
@@ -40,14 +41,22 @@ function escapeCsvField(field: string): string {
   return /[",\r\n]/.test(field) ? `"${field.replace(/"/g, '""')}"` : field
 }
 
+/** Legacy logs recorded before hourlyWageAtLog existed lack it in storage; derive it back from amount/workHoursSaved. */
+function resolveHourlyWageAtLog(log: ProtectedLog): string {
+  if (log.hourlyWageAtLog) return String(log.hourlyWageAtLog)
+  if (log.workHoursSaved > 0) return String(Math.round(log.amount / log.workHoursSaved))
+  return '-'
+}
+
 function toCsv(logs: ProtectedLog[]): string {
-  const header = ['날짜', '사이트', '결제금액(원)', '노동시간(h)', '당시시급(원)']
+  const header = ['날짜', '사이트', '결제금액(원)', '노동시간(h)', '당시시급(원)', '비고']
   const rows = logs.map((log) => [
     new Date(log.timestamp).toLocaleString('ko-KR'),
     log.siteDomain,
     String(log.amount),
     String(log.workHoursSaved),
-    String(log.hourlyWageAtLog),
+    resolveHourlyWageAtLog(log),
+    log.isDuplicateAttempt ? '중복 시도' : log.isOverridden ? '외부 지출' : '',
   ])
   return [header, ...rows].map((row) => row.map(escapeCsvField).join(',')).join('\r\n')
 }

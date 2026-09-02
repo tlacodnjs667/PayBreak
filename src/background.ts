@@ -24,7 +24,7 @@ async function handleMessage(message: PayBreakMessage, sender: chrome.runtime.Me
       break
     }
     case 'RECORD_OVERRIDE': {
-      await storage.recordOverride()
+      await storage.recordOverride(message.amount)
       break
     }
   }

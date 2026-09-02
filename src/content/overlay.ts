@@ -35,6 +35,12 @@ const STYLES = `
   font-size: 13px;
   color: #ff5c5c;
   font-weight: 600;
+  margin: 0 0 8px;
+}
+.pb-monthly-warning {
+  font-size: 13px;
+  color: #60a5fa;
+  font-weight: 600;
   margin: 0 0 20px;
 }
 .pb-amount-input-row {
@@ -175,6 +181,7 @@ export function mountOverlay(initialAmount: number | null, config: UserConfig, s
   card.innerHTML = `
     <p class="pb-title">잠깐, ${formattedTarget} 목표를 다시 생각해보세요</p>
     <p class="pb-delay-warning" id="pb-delay-warning"></p>
+    <p class="pb-monthly-warning" id="pb-monthly-warning"></p>
     ${initialAmount === null ? `
       <div class="pb-amount-input-row">
         <input type="number" placeholder="결제 예정 금액을 직접 입력하세요" id="pb-manual-amount" />
@@ -195,6 +202,7 @@ export function mountOverlay(initialAmount: number | null, config: UserConfig, s
 
   const figuresEl = card.querySelector<HTMLDivElement>('#pb-figures')!
   const delayWarningEl = card.querySelector<HTMLParagraphElement>('#pb-delay-warning')!
+  const monthlyWarningEl = card.querySelector<HTMLParagraphElement>('#pb-monthly-warning')!
   const timerEl = card.querySelector<HTMLDivElement>('#pb-timer')!
   const saveBtn = card.querySelector<HTMLButtonElement>('#pb-save-btn')!
   const proceedBtn = card.querySelector<HTMLButtonElement>('#pb-proceed-btn')!
@@ -206,6 +214,10 @@ export function mountOverlay(initialAmount: number | null, config: UserConfig, s
   function renderFigures() {
     const figures = calcFrictionFigures(amount, config)
     delayWarningEl.textContent = `이번 결제(${formatWon(amount)})를 참으면 목표 달성 게이지가 +${figures.gaugeGainPercent}% 채워집니다!`
+    monthlyWarningEl.textContent =
+      config.monthlySavingsTarget > 0
+        ? `이번 결제(${formatWon(amount)})를 참으면 이번 달 저축 목표(${formatWon(config.monthlySavingsTarget)})의 +${figures.monthlyGaugeGainPercent}%를 즉시 채웁니다!`
+        : ''
     figuresEl.innerHTML = `
       <div class="pb-figure-row"><span class="label">결제 금액</span><span class="value">${formatWon(amount)}</span></div>
       <div class="pb-figure-row"><span class="label">내 시급 기준 노동 시간</span><span class="value">${figures.workHours}시간</span></div>
@@ -271,7 +283,7 @@ export function mountOverlay(initialAmount: number | null, config: UserConfig, s
 
   proceedBtn.addEventListener('click', async () => {
     if (proceedBtn.disabled) return
-    await sendMessage({ type: 'RECORD_OVERRIDE' })
+    await sendMessage({ type: 'RECORD_OVERRIDE', amount })
     destroy()
   })
 

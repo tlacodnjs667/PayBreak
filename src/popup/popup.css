@@ -18,16 +18,62 @@ body {
   padding: 20px;
 }
 
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
 .title {
   font-size: 16px;
   font-weight: 800;
-  margin: 0 0 2px;
+  margin: 0;
 }
 
 .tagline {
   font-size: 11px;
   color: #9aa0ab;
   margin: 0 0 16px;
+}
+
+.tier-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.tier-badge.tier-S {
+  background: #fbbf24;
+  color: #1a1300;
+}
+
+.tier-badge.tier-A {
+  background: #22c55e;
+  color: #05170b;
+}
+
+.tier-badge.tier-B {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.tier-badge.tier-C {
+  background: #f97316;
+  color: #1a0d00;
+}
+
+.tier-badge.tier-F {
+  background: #ef4444;
+  color: #fff;
+}
+
+.override-warning {
+  font-size: 11px;
+  color: #ef4444;
+  font-weight: 700;
+  margin: -10px 0 18px;
 }
 
 .progress-track {
@@ -47,6 +93,77 @@ body {
   font-size: 12px;
   color: #9aa0ab;
   margin-bottom: 18px;
+}
+
+.manual-override-section {
+  margin-bottom: 20px;
+}
+
+.manual-override-toggle-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed #3a3d47;
+  border-radius: 8px;
+  background: transparent;
+  color: #9aa0ab;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.manual-override-toggle-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.manual-override-form {
+  margin-top: 8px;
+  background: #0e0f14;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.manual-override-hint {
+  font-size: 10.5px;
+  color: #9aa0ab;
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+
+.manual-override-amount,
+.manual-override-note {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #3a3d47;
+  background: #16181f;
+  color: #f5f5f7;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.manual-override-submit-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.manual-override-submit-btn:hover {
+  background: #dc2626;
+}
+
+.manual-override-feedback {
+  font-size: 11px;
+  color: #22c55e;
+  margin: 8px 0 0;
+  text-align: center;
 }
 
 .stat-grid {

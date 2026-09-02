@@ -13,6 +13,7 @@ export interface CloseTabMessage {
 
 export interface RecordOverrideMessage {
   type: 'RECORD_OVERRIDE'
+  amount: number
 }
 
 export type PayBreakMessage = RecordProtectedMessage | CloseTabMessage | RecordOverrideMessage
