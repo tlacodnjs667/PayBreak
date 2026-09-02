@@ -11,9 +11,18 @@ const sizes = [16, 32, 48, 128]
 
 for (const size of sizes) {
   const outPath = path.join(__dirname, '..', 'public', 'icons', `icon${size}.png`)
-  await sharp(svg, { density: 384 })
-    .resize(size, size)
-    .png()
-    .toFile(outPath)
+  const artworkSize = size === 128 ? 96 : size
+  const padding = (size - artworkSize) / 2
+  let image = sharp(svg, { density: 384 }).resize(artworkSize, artworkSize)
+  if (padding > 0) {
+    image = image.extend({
+      top: padding,
+      bottom: padding,
+      left: padding,
+      right: padding,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+  }
+  await image.png().toFile(outPath)
   console.log(`generated ${outPath}`)
 }

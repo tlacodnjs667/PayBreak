@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PayBreak Store Screenshot — Dashboard</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, "Malgun Gothic", sans-serif;
+        background:
+          radial-gradient(circle at 78% 18%, rgba(59, 130, 246, 0.18), transparent 32%),
+          radial-gradient(circle at 15% 85%, rgba(34, 197, 94, 0.14), transparent 34%),
+          #0b0d12;
+        color: #f5f5f7;
+      }
+      .canvas {
+        width: 1280px;
+        height: 800px;
+        padding: 68px 92px;
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        align-items: center;
+        gap: 74px;
+      }
+      .brand { display: flex; align-items: center; gap: 18px; margin-bottom: 38px; }
+      .brand img { width: 96px; height: 96px; margin: -10px; }
+      .brand-name { font-weight: 900; font-size: 28px; letter-spacing: -0.02em; }
+      .eyebrow { color: #60a5fa; font-size: 17px; font-weight: 800; margin: 0 0 16px; }
+      h1 { font-size: 56px; line-height: 1.16; letter-spacing: -0.045em; margin: 0 0 22px; }
+      .lead { color: #b3b7c2; font-size: 21px; line-height: 1.65; margin: 0; max-width: 640px; }
+      .pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
+      .pill { padding: 10px 15px; border-radius: 999px; background: #161a23; border: 1px solid #293041; color: #dfe3eb; font-size: 14px; font-weight: 700; }
+      .window {
+        justify-self: end;
+        width: 384px;
+        padding: 20px 20px 24px;
+        border-radius: 26px;
+        background: rgba(25, 29, 39, 0.94);
+        border: 1px solid #343b4d;
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
+      }
+      .window-bar { display: flex; gap: 7px; margin: 0 0 15px 3px; }
+      .dot { width: 9px; height: 9px; border-radius: 50%; background: #4b5263; }
+      .dot:first-child { background: #ef4444; }
+      .dot:nth-child(2) { background: #f59e0b; }
+      .dot:nth-child(3) { background: #22c55e; }
+      iframe { display: block; width: 322px; height: 520px; margin: auto; border: 1px solid #303543; border-radius: 15px; background: #16181f; }
+      .caption { color: #7f8798; font-size: 12px; text-align: center; margin: 14px 0 0; }
+    </style>
+  </head>
+  <body>
+    <main class="canvas">
+      <section>
+        <div class="brand">
+          <img src="/icons/icon128.png" alt="PayBreak" />
+          <span class="brand-name">PayBreak</span>
+        </div>
+        <p class="eyebrow">충동구매를 멈추는 가장 짧은 습관</p>
+        <h1>지킨 소비가<br />목표 자산이 됩니다.</h1>
+        <p class="lead">결제 방어 금액과 강행 금액을 브라우저 안에서 기록하고, 목표까지의 흐름을 한눈에 확인하세요.</p>
+        <div class="pills">
+          <span class="pill">로컬 저장</span>
+          <span class="pill">방어 성공률</span>
+          <span class="pill">일·월·연 리포트</span>
+          <span class="pill">CSV 내보내기</span>
+        </div>
+      </section>
+      <section class="window" aria-label="실제 PayBreak 대시보드 미리보기">
+        <div class="window-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+        <iframe src="./dashboard-app.html" title="PayBreak 대시보드"></iframe>
+        <p class="caption">실제 확장 프로그램 대시보드 예시</p>
+      </section>
+    </main>
+  </body>
+</html>

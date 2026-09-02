@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PayBreak Dashboard Preview</title>
+    <link rel="stylesheet" href="../../src/popup/popup.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      const previewData = {
+        userConfig: {
+          targetAmount: 100000000,
+          targetMonths: 60,
+          monthlySavingsTarget: 1666667,
+          hourlyWage: 18000,
+          cooldownSeconds: 30,
+          salaryType: 'hourly',
+          monthlySalary: 0,
+        },
+        stats: {
+          totalProtectedAmount: 1842000,
+          totalOverriddenAmount: 128000,
+          protectedCount: 14,
+          overrideCount: 2,
+        },
+        protectedLogs: [
+          {
+            id: 'preview-1',
+            timestamp: '2026-09-01T10:00:00+09:00',
+            siteDomain: 'shopping.example',
+            amount: 238000,
+            workHoursSaved: 13.2,
+            hourlyWageAtLog: 18000,
+            isDuplicateAttempt: false,
+          },
+          {
+            id: 'preview-2',
+            timestamp: '2026-08-21T19:20:00+09:00',
+            siteDomain: 'store.example',
+            amount: 450000,
+            workHoursSaved: 25,
+            hourlyWageAtLog: 18000,
+            isDuplicateAttempt: false,
+          },
+        ],
+      }
+
+      window.chrome = {
+        storage: {
+          local: {
+            get: async () => structuredClone(previewData),
+            set: async (patch) => Object.assign(previewData, patch),
+          },
+        },
+      }
+    </script>
+    <script type="module" src="../../src/popup/main.ts"></script>
+  </body>
+</html>
+
